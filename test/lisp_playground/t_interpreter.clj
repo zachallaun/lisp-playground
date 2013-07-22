@@ -64,3 +64,13 @@
     (:val (interpret '(do (def inc (f (x) (+ x 1)))
                           (inc (inc (inc 0))))))
     => 3))
+
+(facts "good citizen"
+  (fact "functions are closures"
+    (:val (interpret
+           '(do (def x ((f (y)
+                           (f () y))
+                        1))
+                ((f (y) (x))
+                 2))))
+    => 1))

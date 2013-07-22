@@ -36,9 +36,10 @@
     (:val (interpret '(null? '(1 2 3)))) => '())
 
   (fact "anonymous functions"
-    (:val (interpret '(f (x) (+ x 1)))) => fn?
-    (:val (interpret '((f (x) (+ x 1)) 10))) => 11
-    (:val (interpret '((f (x y) (cons x (cons y '()))) 1 2))) => '(1 2))
+    (:val (interpret '(fn (x) (+ x 1)))) => fn?
+    (:val (interpret '((fn (x) (+ x 1)) 10))) => 11
+    (:val (interpret '((fn (x y) (cons x (cons y '()))) 1 2))) => '(1 2)
+    (:val (interpret '((fn () 1)))) => 1)
 
   (fact "if"
     (:val (interpret '(if t 1 0))) => 1
@@ -61,16 +62,16 @@
     (:val (interpret '(do 'foo))) => 'foo)
 
   (fact "the dynamic def and do-o"
-    (:val (interpret '(do (def inc (f (x) (+ x 1)))
+    (:val (interpret '(do (def inc (fn (x) (+ x 1)))
                           (inc (inc (inc 0))))))
     => 3))
 
 (facts "good citizen"
   (fact "functions are closures"
     (:val (interpret
-           '(do (def x ((f (y)
-                           (f () y))
+           '(do (def x ((fn (y)
+                           (fn () y))
                         1))
-                ((f (y) (x))
+                ((fn (y) (x))
                  2))))
     => 1))

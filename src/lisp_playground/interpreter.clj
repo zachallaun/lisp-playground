@@ -43,13 +43,13 @@
       (interpret-in-env conseq env)
       (interpret-in-env alt env))
 
-    [(['f ([& params] :seq) body] :seq)]
+    [(['fn ([& params] :seq) body] :seq)]
     {:val (fn [& args]
             (:val (interpret-in-env body (extend-env env (zipmap params args)))))
      :env env}
 
     [(['macro ([& params] :seq) body] :seq)]
-    {:val (with-meta (:val (interpret-in-env (list 'f params body) env))
+    {:val (with-meta (:val (interpret-in-env (list 'fn params body) env))
                      {:macro true})
      :env env}
 

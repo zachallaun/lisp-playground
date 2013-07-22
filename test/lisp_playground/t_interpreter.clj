@@ -67,7 +67,8 @@
                           (inc (inc (inc 0))))))
     => 3))
 
-(facts "good citizen"
+(facts "all together now"
+
   (fact "functions are closures"
     (:val (interpret
            '(do (def x ((fn (y)
@@ -75,4 +76,24 @@
                         1))
                 ((fn (y) (x))
                  2))))
-    => 1))
+    => 1)
+
+  (fact "recursion can be defined using the Y-combinator"
+    (:val
+     (interpret
+      '(do (def Y
+             (fn (func)
+               ((fn (x)
+                  (func (fn (y) ((x x) y))))
+                (fn (x)
+                  (func (fn (y) ((x x) y)))))))
+
+           (def fact
+             (Y (fn (fact)
+                  (fn (n)
+                    (if (= n 0)
+                      1
+                      (* n (fact (- n 1))))))))
+
+           (fact 5))))
+    => 120))

@@ -96,4 +96,28 @@
                       (* n (fact (- n 1))))))))
 
            (fact 5))))
+    => 120)
+
+  (fact "extending fn to support naming"
+    (:val
+     (interpret
+      '(do (def Y
+             (fn (func)
+               ((fn (x)
+                  (func (fn (y) ((x x) y))))
+                (fn (x)
+                  (func (fn (y) ((x x) y)))))))
+
+           (def fn
+             (macro (name args body)
+                    (list 'Y (list 'fn (list name)
+                                   (list 'fn args body)))))
+
+           (def fact
+             (fn recur (n)
+               (if (= n 0)
+                 1
+                 (* n (recur (- n 1))))))
+
+           (fact 5))))
     => 120))

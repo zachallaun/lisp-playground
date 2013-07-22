@@ -44,7 +44,8 @@
   (fact "if"
     (:val (interpret '(if t 1 0))) => 1
     (:val (interpret '(if '() 1 0))) => 0
-    (:val (interpret '(if (null? '()) 1 0))) => 1)
+    (:val (interpret '(if (null? '()) 1 0))) => 1
+    (:val (interpret '((fn (n) (if (= n 0) 100 200)) 123))) => 200)
 
   (fact "macros and macroexpand-1"
     (:val (interpret '(macro (x) (list '+ 1 x)))) => (comp :macro meta)

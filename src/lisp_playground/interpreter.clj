@@ -104,7 +104,7 @@
    'cdr rest
    'null? #(or (= % ()) ())
    'list list
-   '= =})
+   '= #(or (= %1 %2) ())})
 
 (defn interpret
   [expr]

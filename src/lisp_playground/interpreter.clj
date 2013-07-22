@@ -35,61 +35,62 @@
 (defn interpret-in-env
   [expr env]
   (match [expr]
-    ;; quote form
-    ;;   (quote (1 2 3)) => '(1 2 3)
-    [(['quote e] :seq)] e
+    [(['quote e] :seq)]
+    {:val e :env env}
 
-    ;; if form
-    ;;   (if (null? ()) 1 0) => 1
     [(['if pred conseq alt] :seq)]
-    (if (not= () (interpret-in-env pred env))
+    (if (not= () (:val (interpret-in-env pred env)))
       (interpret-in-env conseq env)
       (interpret-in-env alt env))
 
-    ;; anonymous functions
-    ;;   (f (x) (+ x 1)) => a Clojure function
-    ;;   (f (x y) (cons x (cons y '()))) => also a Clojure function
     [(['f ([& params] :seq) body] :seq)]
-    (fn [& args]
-      (interpret-in-env body (extend-env env (zipmap params args))))
+    {:val (fn [& args]
+            (:val (interpret-in-env body (extend-env env (zipmap params args)))))
+     :env env}
 
-    ;; anonymous macros
-    ;;   (macro (x) (list '+ 1 x)) => a Clojure function w/ :macro metadata
     [(['macro ([& params] :seq) body] :seq)]
-    (with-meta (interpret-in-env (list 'f params body) env) {:macro true})
+    {:val (with-meta (:val (interpret-in-env (list 'f params body) env))
+                     {:macro true})
+     :env env}
 
-    ;; macroexpansion
-    ;;   '(macroexpand-1 ((macro (x) (list '+ 1 x))) 1) => '(+ 1 1)
     [(['macroexpand-1 form] :seq)]
-    (if-not (list? form)
-      form
-      (let [[hd & args] form
-            operator (interpret-in-env hd env)]
-        (if-not (macro? operator)
-          form
-          (apply operator args))))
+    {:val (if-not (list? form)
+            form
+            (let [[hd & args] form
+                  operator (:val (interpret-in-env hd env))]
+              (if-not (macro? operator)
+                form
+                (apply operator args))))
+     :env env}
 
-    ;; function and macro application
-    ;;   (+ 1 2) => 3
+    [(['def (name :guard symbol?) val] :seq)]
+    (let [binding (:val (interpret-in-env val env))]
+      {:val binding
+       :env (add env name binding)})
+
+    [(['do form] :seq)]
+    (interpret-in-env form env)
+
+    [(['do form & remaining] :seq)]
+    (let [{_ :val new-env :env} (interpret-in-env form env)]
+      (interpret-in-env (cons 'do remaining) new-env))
+
     [([function & args] :seq)]
-    (let [f-or-macro (interpret-in-env function env)]
-      (if (macro? f-or-macro)
-        (interpret-in-env (apply f-or-macro args) env)
-        (apply f-or-macro
-               (map #(interpret-in-env % env) args))))
+    {:val (let [f-or-macro (:val (interpret-in-env function env))]
+            (if (macro? f-or-macro)
+              (:val (interpret-in-env (apply f-or-macro args) env))
+              (apply f-or-macro
+                     (map #(:val (interpret-in-env % env)) args))))
+     :env env}
 
-    ;; symbol lookup
-    ;;   foo => whatever foo is bound to, or an error
     [(sym :guard symbol?)]
-    (lookup env sym)
+    {:val (lookup env sym) :env env}
 
-    ;; numbers eval to themselves
-    ;;   1 => 1
-    ;;   1.0 => 1.0
     [(n :guard number?)]
-    n
+    {:val n :env env}
 
-    [_] (throw (Exception. "fail"))))
+    [_]
+    (throw (Exception. "fail"))))
 
 (def built-ins
   {'t true

@@ -10,45 +10,57 @@
     ;; fails because the default interpretation is an environment
     ;; lookup. Evaluating to a symbol actually requires '(quote sym),
     ;; which is not an atom.
-    (interpret 2)    => 2
-    (interpret '2)   => 2
-    (interpret 2.0)  => 2.0
+    (:val (interpret 2))    => 2
+    (:val (interpret '2))   => 2
+    (:val (interpret 2.0))  => 2.0
     (interpret 'foo) => (throws))
 
   (fact "quoting"
-    (interpret '(quote foo)) => 'foo
-    (interpret '(quote (1 2 3))) => '(1 2 3)
-    (interpret (quote '())) => ())
+    (:val (interpret '(quote foo))) => 'foo
+    (:val (interpret '(quote (1 2 3)))) => '(1 2 3)
+    (:val (interpret (quote '()))) => ())
 
   (fact "env lookup"
-    (interpret 't) => true
-    (interpret 'null) => '())
+    (:val (interpret 't)) => true
+    (:val (interpret 'null)) => '())
 
   (fact "application"
-    (interpret '(+ 1 2)) => 3
-    (interpret '(+ (- 2 1) (- 3 1))) => 3
-    (interpret '(cons 1 '(2 3))) => '(1 2 3)
-    (interpret '(car '(1 2 3))) => 1
-    (interpret '(cdr '(1 2 3))) => '(2 3)
-    (interpret '(car '())) => '()
-    (interpret '(cdr '())) => '()
-    (interpret '(null? '())) => true
-    (interpret '(null? '(1 2 3))) => '())
+    (:val (interpret '(+ 1 2))) => 3
+    (:val (interpret '(+ (- 2 1) (- 3 1)))) => 3
+    (:val (interpret '(cons 1 '(2 3)))) => '(1 2 3)
+    (:val (interpret '(car '(1 2 3)))) => 1
+    (:val (interpret '(cdr '(1 2 3)))) => '(2 3)
+    (:val (interpret '(car '()))) => '()
+    (:val (interpret '(cdr '()))) => '()
+    (:val (interpret '(null? '()))) => true
+    (:val (interpret '(null? '(1 2 3)))) => '())
 
   (fact "anonymous functions"
-    (interpret '(f (x) (+ x 1))) => fn?
-    (interpret '((f (x) (+ x 1)) 10)) => 11
-    (interpret '((f (x y) (cons x (cons y '()))) 1 2)) => '(1 2))
+    (:val (interpret '(f (x) (+ x 1)))) => fn?
+    (:val (interpret '((f (x) (+ x 1)) 10))) => 11
+    (:val (interpret '((f (x y) (cons x (cons y '()))) 1 2))) => '(1 2))
 
   (fact "if"
-    (interpret '(if t 1 0)) => 1
-    (interpret '(if '() 1 0)) => 0
-    (interpret '(if (null? '()) 1 0)) => 1)
+    (:val (interpret '(if t 1 0))) => 1
+    (:val (interpret '(if '() 1 0))) => 0
+    (:val (interpret '(if (null? '()) 1 0))) => 1)
 
   (fact "macros and macroexpand-1"
-    (interpret '(macro (x) (list '+ 1 x))) => (comp :macro meta)
-    (interpret '((macro (x) (list '+ 1 x)) 1)) => 2
-    (interpret '(macroexpand-1 ((macro (x) (list '+ 1 x)) 1))) => '(+ 1 1)
-    (interpret '(macroexpand-1 1)) => 1
-    (interpret '(macroexpand-1 (+ 1 2))) => '(+ 1 2)))
+    (:val (interpret '(macro (x) (list '+ 1 x)))) => (comp :macro meta)
+    (:val (interpret '((macro (x) (list '+ 1 x)) 1))) => 2
+    (:val (interpret '(macroexpand-1 ((macro (x) (list '+ 1 x)) 1)))) => '(+ 1 1)
+    (:val (interpret '(macroexpand-1 1))) => 1
+    (:val (interpret '(macroexpand-1 (+ 1 2)))) => '(+ 1 2))
 
+  (fact "def"
+    (:env (interpret '(def x 1))) => #(= 1 (lookup % 'x))
+    (:env (interpret '(def x (+ 1 2)))) => #(= 3 (lookup % 'x)))
+
+  (fact "do"
+    (:val (interpret '(do 'foo (+ 1 2)))) => 3
+    (:val (interpret '(do 'foo))) => 'foo)
+
+  (fact "the dynamic def and do-o"
+    (:val (interpret '(do (def inc (f (x) (+ x 1)))
+                          (inc (inc (inc 0))))))
+    => 3))

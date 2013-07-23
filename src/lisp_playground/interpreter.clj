@@ -76,12 +76,12 @@
       (interpret-in-env (cons 'do remaining) new-env))
 
     [([function & args] :seq)]
-    {:val (let [f-or-macro (:val (interpret-in-env function env))]
-            (if (macro? f-or-macro)
-              (:val (interpret-in-env (apply f-or-macro args) env))
-              (apply f-or-macro
-                     (map #(:val (interpret-in-env % env)) args))))
-     :env env}
+    (let [f-or-macro (:val (interpret-in-env function env))]
+      (if (macro? f-or-macro)
+        (interpret-in-env (apply f-or-macro args) env)
+        {:val (apply f-or-macro
+                     (map #(:val (interpret-in-env % env)) args))
+         :env env}))
 
     [(sym :guard symbol?)]
     {:val (lookup env sym) :env env}
@@ -109,3 +109,29 @@
 (defn interpret
   [expr]
   (interpret-in-env expr (extend-env empty-env built-ins)))
+
+(def stdlib
+  '(do (def Y
+         (fn (func)
+           ((fn (x)
+              (func (fn (y) ((x x) y))))
+            (fn (x)
+              (func (fn (y) ((x x) y)))))))
+
+       (def fn
+         (macro (name args body)
+                (list 'Y (list 'fn (list name)
+                               (list 'fn args body)))))
+
+       (def defn
+             (macro (name args body)
+               (list 'def name
+                 (list 'fn name args
+                   body))))))
+
+(defn interpret-with-lib
+  "A lib is a set of defs within a do"
+  ([expr]
+     (interpret-with-lib expr stdlib))
+  ([expr lib]
+     (interpret-in-env expr (:env (interpret lib)))))

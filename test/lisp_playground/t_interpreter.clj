@@ -120,4 +120,15 @@
                  (* n (recur (- n 1))))))
 
            (fact 5))))
+    => 120)
+
+  (fact "can interpret with a lib"
+    (:val
+     (interpret-with-lib
+      '(do (defn fact (n)
+             (if (= n 0)
+               1
+               (* n (fact (- n 1)))))
+
+           (fact 5))))
     => 120))
